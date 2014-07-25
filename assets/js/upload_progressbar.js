@@ -33,6 +33,8 @@ ProgressBarUpload.prototype = {
 
     runningRequests: null,
 
+    pendingUploads: null,
+
     submitButton: null,
 
     files: null,
@@ -97,6 +99,8 @@ ProgressBarUpload.prototype = {
         if (this.files.length < 1) {
             return;
         }
+
+        this.pendingUploads = this.files.length
 
         this.files.forEach(function (file, index) {
             var cls = index % 2 == 0 ? 'even' : 'odd';
@@ -213,18 +217,20 @@ ProgressBarUpload.prototype = {
         oReq.addEventListener("load", function (event) {
             self._transferComplete(event, oReq);
             self.runningRequests--;
+            self.pendingUploads--;
+            if(self.pendingUploads == 0){
+                alert('Uploadvorgänge für alle Dateien abgeschlossen');
+            }
         }, false);
 
         oReq.addEventListener("error", function () {
             oReq.abort();
             self.resetRow(index);
             self.runningRequests--;
-        });
-
-        oReq.upload.addEventListener("progress", function (event) {
-            var percent = Math.round(100 / event.total * event.loaded);
-            self.setProgressBarValue(index, percent);
-            self.setPercentValue(index, percent);
+            self.pendingUploads--;
+            if(self.pendingUploads == 0){
+                alert('Uploadvorgänge für alle Dateien abgeschlossen');
+            }
         });
 
         oReq.addEventListener("abort", function () {
@@ -232,6 +238,16 @@ ProgressBarUpload.prototype = {
             self.runningRequests--;
             oReq.stateBox.innerHTML = 'Upload abgebrochen!';
             oReq.stateBox.classList.add('error');
+            self.pendingUploads--;
+            if(self.pendingUploads == 0){
+                alert('Uploadvorgänge für alle Dateien abgeschlossen');
+            }
+        });
+
+        oReq.upload.addEventListener("progress", function (event) {
+            var percent = Math.round(100 / event.total * event.loaded);
+            self.setProgressBarValue(index, percent);
+            self.setPercentValue(index, percent);
         });
 
         // specify the type of request

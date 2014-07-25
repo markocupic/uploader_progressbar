@@ -21,6 +21,7 @@ class ValidateProgressbarUpload extends \System
        {
               if ($objWidget instanceof \FormFileUploadProgressbar)
               {
+
                      if (\Input::post('FORM_UPLOAD_PROGRESSBAR'))
                      {
                             $json = array();
@@ -34,26 +35,34 @@ class ValidateProgressbarUpload extends \System
                                    $json['state'] = 'success';
                                    $json['serverResponse'] = $GLOBALS['TL_LANG']['form_upload_progressbar']['uploaded_successfully'];
                             }
+
                             $_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')] = json_encode($json);
                      }
               }
               return $objWidget;
        }
 
-       public function outputFrontendTemplate($strContent, $strTemplate)
+       public function processFormData($arrSubmitted, $arrData, $arrFiles, $arrLabels, $objForm)
        {
-              if (\Input::post('FORM_UPLOAD_PROGRESSBAR') && \Input::post('reqId'))
+              if (strlen($_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')]))
               {
-                     if (strlen($_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')]))
+                     echo $_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')];
+                     unset($_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')]);
+
+                     $_SESSION['FILES'] = array(); // DO NOT CHANGE
+
+                     // Add a log entry
+                     if (FE_USER_LOGGED_IN)
                      {
-                            echo $_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')];
-                            unset($_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')]);
-                            exit;
+                            $this->import('FrontendUser', 'User');
+                            $this->log('Form "' . $objForm->title . '" has been submitted by "' . $this->User->username . '".', __METHOD__, TL_FORMS);
                      }
+                     else
+                     {
+                            $this->log('Form "' . $objForm->title . '" has been submitted by ' . \System::anonymizeIp(\Environment::get('ip')) . '.', __METHOD__, TL_FORMS);
+                     }
+                     exit;
               }
-
-
-              return $strContent;
        }
 
 } 

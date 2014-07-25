@@ -9,7 +9,7 @@
 // config.php
 //if(Input::post('FORM_UPLOAD_PROGRESSBAR')){
        $GLOBALS['TL_HOOKS']['validateFormField'][] = array('ValidateProgressbarUpload', 'validateFeFileupload');
-       $GLOBALS['TL_HOOKS']['parseFrontendTemplate'][] = array('ValidateProgressbarUpload', 'outputFrontendTemplate');
+       $GLOBALS['TL_HOOKS']['processFormData'][] = array('ValidateProgressbarUpload', 'processFormData');
 ///}
 /**
  * Front end form fields
