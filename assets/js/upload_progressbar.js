@@ -20,7 +20,7 @@ ProgressBarUpload.prototype = {
 
     options: {
         // simultaneous requests
-        maxSimultaneousRequests: 6
+        maxSimultaneousRequests: 1
     },
 
     fieldId: null,
@@ -41,8 +41,9 @@ ProgressBarUpload.prototype = {
 
     fileInputField: null,
 
-    init: function (fieldId, options) {
+    messages: [],
 
+    init: function (fieldId, options) {
         var self = this;
 
         // set options
@@ -53,33 +54,44 @@ ProgressBarUpload.prototype = {
             });
         }
 
-        this.fieldId = fieldId;
+        self.fieldId = fieldId;
         // set the form object
-        this.form = this.findParentBySelector(document.getElementById('ctrl_' + self.fieldId), 'form');
+        self.form = self.findParentBySelector(document.getElementById('ctrl_' + self.fieldId), 'form');
 
-        this.form.addEventListener('submit',function (evt) {
-            if (evt.preventDefault) {
-                evt.preventDefault();
-                self.initUpload();
+        self.form.classList.add('dont_submit');
+
+        self.form.addEventListener('submit', function (evt) {
+            if (!self.files) {
+                return;
             }
-            return false;
+            if (self.files.length == 0) {
+                return;
+            }
+            if (self.form.classList.contains('dont_submit')) {
+                if (evt.preventDefault) {
+                    evt.preventDefault();
+                    self.initUpload();
+                }
+                return false;
+            }
+
         }, false);
 
 
-        if(document.querySelector('#' + this.form.id + ' .submit'))
-        {
-            this.submitButton = document.querySelector('#' + this.form.id + ' .submit');
-        }else{
+        if (document.querySelector('#' + self.form.id + ' .submit')) {
+            self.submitButton = document.querySelector('#' + self.form.id + ' .submit');
+        } else {
             alert('Please add a submit button to your form.');
         }
 
     },
 
     fileChange: function (fileInputField) {
-
-        this.fileInputField = fileInputField;
         var self = this;
-        this.killAllRequests();
+
+        self.fileInputField = fileInputField;
+        var self = this;
+        self.abortAllRequests();
 
 
         //remove all rows
@@ -89,20 +101,20 @@ ProgressBarUpload.prototype = {
         }
 
         // hide submit button when files are selected
-        if(this.submitButton){
-            this.submitButton.style.visibility = 'visible';
+        if (self.submitButton) {
+            self.submitButton.style.visibility = 'visible';
         }
 
-        var fileList = this.fileInputField.files;
-        this.files = this._getFiles(fileList);
+        var fileList = self.fileInputField.files;
+        self.files = self._getFiles(fileList);
 
-        if (this.files.length < 1) {
+        if (self.files.length < 1) {
             return;
         }
 
-        this.pendingUploads = this.files.length
+        self.pendingUploads = self.files.length
 
-        this.files.forEach(function (file, index) {
+        self.files.forEach(function (file, index) {
             var cls = index % 2 == 0 ? 'even' : 'odd';
 
             var holder = document.createElement('div');
@@ -150,22 +162,22 @@ ProgressBarUpload.prototype = {
 
     initUpload: function () {
         var self = this;
-        if (this.requests.length) {
+        if (self.requests.length) {
             alert("Don't press the submit button twice");
             return;
         }
 
         // hide the submit button
-        this.submitButton.style.visibility = 'hidden';
+        self.submitButton.style.visibility = 'hidden';
 
         //abort all pending requests
-        this.killAllRequests();
-        this.runningRequests = 0;
+        self.abortAllRequests();
+        self.runningRequests = 0;
 
-        this.files.forEach(function (file, index) {
+        self.files.forEach(function (file, index) {
             //create XMLHttpRequest object
             var oReq = new XMLHttpRequest();
-            oReq.id = Math.floor(Math.random()*100000) + 1;
+            oReq.id = Math.floor(Math.random() * 100000) + 1;
             self.requests[index] = oReq;
             oReq.file = file;
             oReq.index = index;
@@ -181,15 +193,15 @@ ProgressBarUpload.prototype = {
         var file = oReq.file;
 
         // limit simultaneous requests
-        if (this.runningRequests >= this.options.maxSimultaneousRequests) {
+        if (self.runningRequests >= self.options.maxSimultaneousRequests) {
             window.setTimeout(function () {
                 self.uploadFile(index, oReq);
-            }, 5000);
+            }, 500);
             return;
         }
 
         // increase class var runningRequests by 1
-        this.runningRequests++;
+        self.runningRequests++;
 
         // reset progress-bar and percent value
         self.resetRow(index);
@@ -204,10 +216,12 @@ ProgressBarUpload.prototype = {
         formData.append('reqId', oReq.id);
 
         // add value of hidden input fields to the formData object -> REQUEST_TOKEN, MAX_FILE_SIZE, FORM_SUBMIT
-        document.querySelectorAll('#' + this.form.id + ' .formbody input').forEach(function (el) {
-            //if (el.type == 'hidden') {
-                formData.append(el.name, el.value);
-            //}
+        document.querySelectorAll('#' + self.form.id + ' .formbody input').forEach(function (el) {
+            if (el.type == 'hidden') {
+                if (el.name == 'FORM_SUBMIT' || el.name == 'MAX_FILE_SIZE' || el.name == 'REQUEST_TOKEN') {
+                    formData.append(el.name, el.value);
+                }
+            }
         });
 
         // needed for the formValidate-Hook
@@ -218,8 +232,8 @@ ProgressBarUpload.prototype = {
             self._transferComplete(event, oReq);
             self.runningRequests--;
             self.pendingUploads--;
-            if(self.pendingUploads == 0){
-                alert('Uploadvorgänge für alle Dateien abgeschlossen');
+            if (self.pendingUploads == 0) {
+                self.loadOtherFieldsToServer();
             }
         }, false);
 
@@ -228,19 +242,18 @@ ProgressBarUpload.prototype = {
             self.resetRow(index);
             self.runningRequests--;
             self.pendingUploads--;
-            if(self.pendingUploads == 0){
-                alert('Uploadvorgänge für alle Dateien abgeschlossen');
-            }
+            oReq.stateBox.innerHTML = self.messages['defaultUploadError'];
+
         });
 
         oReq.addEventListener("abort", function () {
             var self = this;
             self.runningRequests--;
-            oReq.stateBox.innerHTML = 'Upload abgebrochen!';
+            oReq.stateBox.innerHTML = self.messages['uploadAborted'];
             oReq.stateBox.classList.add('error');
             self.pendingUploads--;
-            if(self.pendingUploads == 0){
-                alert('Uploadvorgänge für alle Dateien abgeschlossen');
+            if (self.pendingUploads == 0) {
+                alert(self.messages['allUploadsAborted']);
             }
         });
 
@@ -251,7 +264,7 @@ ProgressBarUpload.prototype = {
         });
 
         // specify the type of request
-        oReq.open("POST", this.form.action, true);
+        oReq.open("POST", self.form.action + '?isAjax=true', true);
 
         // send  the request off to the server
         oReq.send(formData);
@@ -259,6 +272,7 @@ ProgressBarUpload.prototype = {
 
     _transferComplete: function (event, oReq) {
         var self = this;
+
         try {
             // get the server-response
             var json = JSON.parse(oReq.responseText);
@@ -281,36 +295,40 @@ ProgressBarUpload.prototype = {
             else {
                 oReq.abort();
                 oReq.stateBox.classList.add('error');
+                oReq.stateBox.innerHTML = self.messages['defaultUploadError2'];
             }
         }
         catch (err) {
             oReq.abort();
             oReq.stateBox.classList.add('error');
-            oReq.stateBox.innerHTML = 'Die Datei konnte nicht auf den Server geladen werden.'
-            alert(oReq.responseText);
+            oReq.stateBox.innerHTML = self.messages['defaultUploadError2'];
         }
-        if(hasError){
-            oReq.stateBox.innerHTML = 'Die Datei konnte nicht auf den Server geladen werden.'
+        if (hasError) {
+            oReq.stateBox.innerHTML = self.messages['defaultUploadError'];
         }
 
     },
 
-    killAllRequests: function () {
-        if (this.requests !== null) {
-            this.requests.forEach(function (oReq) {
+    abortAllRequests: function () {
+        var self = this;
+
+        if (self.requests !== null) {
+            self.requests.forEach(function (oReq) {
                 oReq.abort();
                 oReq.stateBox.parentNode.classList.remove('onprogress');
             });
         }
-        this.requests = [];
+        self.requests = [];
     },
 
     setProgressBarValue: function (index, value) {
-        document.getElementById("progressBarBox_" + this.fieldId + '_' + index).value = value;
+        var self = this;
+        document.getElementById("progressBarBox_" + self.fieldId + '_' + index).value = value;
     },
 
     setPercentValue: function (index, value) {
-        document.getElementById('percentBox_' + this.fieldId + '_' + index).innerHTML = value + '%';
+        var self = this;
+        document.getElementById('percentBox_' + self.fieldId + '_' + index).innerHTML = value + '%';
     },
     _getFiles: function (fileList) {
 
@@ -318,14 +336,11 @@ ProgressBarUpload.prototype = {
         if (typeof fileList == 'object' && fileList !== null) {
             if (fileList.length) {
                 for (var key in fileList) {
-                    //hasOwnProperty isn't supported by ie11
-                    // if(Object.prototype.hasOwnProperty(key)){
                     if (typeof fileList[key] == 'object') {
                         if (fileList[key].name != 'undefined') {
                             files.push(fileList[key]);
                         }
                     }
-                    //}
                 }
             }
         }
@@ -334,8 +349,9 @@ ProgressBarUpload.prototype = {
 
 
     resetRow: function (index) {
-        this.setProgressBarValue(index, 0);
-        this.setPercentValue(index, 0);
+        var self = this;
+        self.setProgressBarValue(index, 0);
+        self.setPercentValue(index, 0);
     },
 
     //helper function for findParentBySelector(see below)
@@ -354,5 +370,29 @@ ProgressBarUpload.prototype = {
             cur = cur.parentNode; //go up
         }
         return cur; //will return null if not found
+    },
+
+    loadOtherFieldsToServer: function () {
+        var self = this;
+        var list = document.querySelectorAll('#' + self.form.id + ' .formbody input');
+        var inputs = 0;
+        list.forEach(function (el) {
+            if (el.type != 'file' && el.type != 'submit' && el.type != 'hidden') {
+                inputs++;
+            }
+        });
+        if (inputs > 0) {
+            if (confirm(self.messages['confirmSendByHttp'])) {
+                self.form.classList.remove('dont_submit');
+                // remove file input
+                self.fileInputField.parentNode.removeChild(self.fileInputField);
+                // send form by http
+                setTimeout(function () {
+                    self.form.submit()
+                }, 500);
+            }
+        }
+
     }
 };
+

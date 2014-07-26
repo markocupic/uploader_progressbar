@@ -25,15 +25,16 @@
 
 <div id="infoBox_<?php echo $this->id; ?>" class="uploaderInfoBox">
 </div>
-
 <script>
         // no mootools, no jquery
         var DOMReady = function(a,b,c){b=document,c='addEventListener';b[c]?b[c]('DOMContentLoaded',a):window.attachEvent('onload',a)}
         DOMReady(function () {
             uploader = new ProgressBarUpload();
             uploader.init('<?php echo $this->id; ?>',{
-                maxSimultaneousRequests: 6
+                maxSimultaneousRequests: 1
             });
+                    <?php echo $this->errMessages; ?>
+
         });
 </script>
 

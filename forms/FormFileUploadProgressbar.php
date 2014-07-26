@@ -35,6 +35,19 @@ class FormFileUploadProgressbar extends \FormFileUpload implements \uploadable
        protected $strTemplate = 'form_upload_progressbar';
 
        /**
+        *
+        */
+       public function generateAjax()
+       {
+              if (strlen($_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::get('reqId')] && $_GET['isAjax'] == 'true'))
+              {
+                     echo $_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')];
+                     unset($_SESSION['FORM_UPLOAD_PROGRESSBAR'][\Input::post('reqId')]);
+                     exit;
+              }
+       }
+
+       /**
         * @param null $arrAttributes
         * @return string
         */
@@ -43,9 +56,18 @@ class FormFileUploadProgressbar extends \FormFileUpload implements \uploadable
               // add javascript source
               $GLOBALS['TL_JAVASCRIPT'][] = 'system/modules/upload_progressbar/assets/js/upload_progressbar.js';
 
-              // return \Widget::parse($arrAttributes);
+              $strMsg = '';
+              foreach($GLOBALS['TL_LANG']['form_upload_progressbar']['messages'] as $k => $v)
+              {
+                     $strMsg .=
+"uploader.messages['" . $k . "'] =  '" . $v . "';" . "\n";
+              }
+
+              $this->errMessages = $strMsg;
               return parent::parse($arrAttributes);
        }
+
+
 
 
 }
