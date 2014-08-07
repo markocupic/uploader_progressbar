@@ -1,17 +1,25 @@
 <?php
+
 /**
- * Created by PhpStorm.
- * User: Marko
- * Date: 22.07.14
- * Time: 17:34
+ * Contao Open Source CMS
+ *
+ * Copyright (c) 2005-2014 Leo Feyer
+ *
+ * @package   upload_progressbar
+ * @author    Marko Cupic
+ * @license   shareware
+ * @copyright Marko Cupic 2014
  */
 
-$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['uploadedSuccessfully'] = 'Datei wurde erfolgreich auf den Server geladen.';
-$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['defaultUploadError'] = 'Die Datei konnte aus unbekannten Gründen nicht auf den Server geladen werden.';
-$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['defaultUploadError2'] = 'Möglicherweise ist ein Fehler passiert, bitte prüfen Sie zur Sicherheit nach, ob die Datei auf den Server geladen werden konnte.';
-$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['allUploadsAborted'] = 'Alle Uploads wurden abgebrochen.';
-$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['uploadAborted'] = 'Upload abgebrochen.';
-$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['confirmSendByHttp'] = 'Das Formular wird nun abgeschickt, damit die restlichen Felder auch noch verarbeitet werden können.';
+$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['uploadedSuccessfully'] = 'Alle Eingaben wurden erfolgreich auf den Server geladen.';
+$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['serverError'] = 'Auf dem Server ist ein Fehler afgetreten. Überprüfen Sie, ob in der Zieltabelle alle nötigen Spalten vorhanden sind.';
+$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['defaultUploadError'] = 'Der Upload wurde abgebrochen, überprüfen Sie Ihre Eingaben.';
+$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['uploadAborted'] = 'Der Upload wurden abgebrochen.';
+$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['formSent'] = 'Das Formular wird nun abgeschickt.';
+$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['validInput'] = 'Eingabe gültig.';
+$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['reloadForm'] = 'Weitere Daten hochladen?';
+$GLOBALS['TL_LANG']['form_upload_progressbar']['messages']['redirectWarning'] = 'Einen Moment bitte... Sie werden gleich weitergeleitet.';
+
 
 
 

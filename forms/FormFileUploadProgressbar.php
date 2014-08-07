@@ -5,9 +5,10 @@
  *
  * Copyright (c) 2005-2014 Leo Feyer
  *
- * @package Core
- * @link    https://contao.org
- * @license http://www.gnu.org/licenses/lgpl-3.0.html LGPL
+ * @package   upload_progressbar
+ * @author    Marko Cupic
+ * @license   shareware
+ * @copyright Marko Cupic 2014
  */
 
 
@@ -22,7 +23,7 @@ namespace Contao;
  *
  * @copyright  Leo Feyer 2005-2014
  * @author     Marko Cupic <m.cupic@gmx.ch>
- * @package    UploadProgressbar
+ * @package    upload_progressbar
  */
 
 class FormFileUploadProgressbar extends \FormFileUpload implements \uploadable

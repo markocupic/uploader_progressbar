@@ -29,12 +29,6 @@ ProgressBarUpload.prototype = {
 
     form: null,
 
-    requests: [],
-
-    runningRequests: null,
-
-    pendingUploads: null,
-
     submitButton: null,
 
     files: null,
@@ -43,9 +37,21 @@ ProgressBarUpload.prototype = {
 
     messages: [],
 
+    statusContainer: null,
+
+    progressBox: null,
+
+    percentBox: null,
+
+    messageBox: null,
+
+    reloadLink: null,
+
+    redirectWarning: null,
+
     init: function (fieldId, options) {
         var self = this;
-
+        self.fieldId = fieldId;
         // set options
         if (options) {
             Object.keys(options).forEach(function (key) {
@@ -54,10 +60,14 @@ ProgressBarUpload.prototype = {
             });
         }
 
-        self.fieldId = fieldId;
         // set the form object
         self.form = self.findParentBySelector(document.getElementById('ctrl_' + self.fieldId), 'form');
+        self.fileInputField = document.querySelector('#' + self.form.id + ' .formbody input[type=file]');
 
+        // get files
+        self.files = self.fileInputField.files;
+
+        // prevent http request
         self.form.classList.add('dont_submit');
 
         self.form.addEventListener('submit', function (evt) {
@@ -77,6 +87,32 @@ ProgressBarUpload.prototype = {
 
         }, false);
 
+        var statusContainer = document.createElement('div');
+        statusContainer.classList.add('statusContainer');
+        statusContainer.setAttribute('id', 'info_' + self.form.id);
+        document.querySelector('#' + self.form.id + ' .formbody').appendChild(statusContainer);
+        self.statusContainer = statusContainer;
+        self.statusContainer.style.visibility = 'hidden';
+
+        var messageBox = document.createElement('div');
+        messageBox.setAttribute('id', 'messageBox_' + self.form.id);
+        messageBox.classList.add('messageBox');
+        self.messageBox = messageBox;
+        statusContainer.appendChild(messageBox);
+
+        var percentBox = document.createElement('div');
+        percentBox.setAttribute('id', 'percentBox_' + self.form.id);
+        percentBox.classList.add('percentBox');
+        percentBox.innerHTML = "0%";
+        self.percentBox = percentBox;
+        statusContainer.appendChild(percentBox);
+
+        var progressBox = document.createElement('progress');
+        progressBox.setAttribute('id', 'progressBarBox_' + self.form.id);
+        progressBox.value = 0;
+        progressBox.max = 100;
+        self.progressBox = progressBox;
+        statusContainer.appendChild(progressBox);
 
         if (document.querySelector('#' + self.form.id + ' .submit')) {
             self.submitButton = document.querySelector('#' + self.form.id + ' .submit');
@@ -86,143 +122,22 @@ ProgressBarUpload.prototype = {
 
     },
 
-    fileChange: function (fileInputField) {
+    fileChange: function () {
         var self = this;
-
-        self.fileInputField = fileInputField;
-        var self = this;
-        self.abortAllRequests();
-
-
-        //remove all rows
-        var node = document.getElementById('infoBox_' + self.fieldId);
-        while (node.hasChildNodes()) {
-            node.removeChild(node.lastChild);
-        }
-
-        // hide submit button when files are selected
-        if (self.submitButton) {
-            self.submitButton.style.visibility = 'visible';
-        }
-
-        var fileList = self.fileInputField.files;
-        self.files = self._getFiles(fileList);
-
-        if (self.files.length < 1) {
-            return;
-        }
-
-        self.pendingUploads = self.files.length
-
-        self.files.forEach(function (file, index) {
-            var cls = index % 2 == 0 ? 'even' : 'odd';
-
-            var holder = document.createElement('div');
-            holder.classList.add(cls);
-            holder.classList.add('holder');
-            holder.setAttribute('id', 'info_' + self.fieldId + '_' + index);
-            document.getElementById('infoBox_' + self.fieldId).appendChild(holder);
-
-            var stateBox = document.createElement('div');
-            stateBox.setAttribute('id', 'stateBox_' + self.fieldId + '_' + index);
-            stateBox.classList.add('stateBox');
-            holder.appendChild(stateBox);
-
-            var fileNameBox = document.createElement('div');
-            fileNameBox.setAttribute('id', 'fileNameBox' + self.fieldId + '_' + index);
-            fileNameBox.classList.add('fileNameBox');
-            fileNameBox.innerHTML = file.name;
-            holder.appendChild(fileNameBox);
-
-            var fileSizeBox = document.createElement('div');
-            fileSizeBox.setAttribute('id', 'fileSizeBox_' + self.fieldId + '_' + index);
-            fileSizeBox.classList.add('fileSizeBox');
-            fileSizeBox.innerHTML = file.size + ' bytes';
-            holder.appendChild(fileSizeBox);
-
-            var fileTypeBox = document.createElement('div');
-            fileTypeBox.setAttribute('id', 'fileTypeBox_' + self.fieldId + '_' + index);
-            fileTypeBox.classList.add('fileTypeBox');
-            fileTypeBox.innerHTML = 'type: ' + file.type;
-            holder.appendChild(fileTypeBox);
-
-            var percentBox = document.createElement('div');
-            percentBox.setAttribute('id', 'percentBox_' + self.fieldId + '_' + index);
-            percentBox.classList.add('percentBox');
-            percentBox.innerHTML = "0%";
-            holder.appendChild(percentBox);
-
-            var progressBox = document.createElement('progress');
-            progressBox.setAttribute('id', 'progressBarBox_' + self.fieldId + '_' + index);
-            progressBox.value = 0;
-            progressBox.max = 100;
-            holder.appendChild(progressBox);
-        });
+        self.files = self._getFiles(self.fileInputField);
     },
 
     initUpload: function () {
         var self = this;
-        if (self.requests.length) {
-            alert("Don't press the submit button twice");
-            return;
-        }
 
         // hide the submit button
-        self.submitButton.style.visibility = 'hidden';
+        self.toggleSubmitButton('hidden');
 
-        //abort all pending requests
-        self.abortAllRequests();
-        self.runningRequests = 0;
-
-        self.files.forEach(function (file, index) {
-            //create XMLHttpRequest object
-            var oReq = new XMLHttpRequest();
-            oReq.id = Math.floor(Math.random() * 100000) + 1;
-            self.requests[index] = oReq;
-            oReq.file = file;
-            oReq.index = index;
-            oReq.stateBox = document.getElementById('stateBox_' + self.fieldId + '_' + index);
-            oReq.stateBox.parentNode.classList.add('onprogress');
-            self.uploadFile(index, oReq);
-        });
-
-    },
-
-    uploadFile: function (index, oReq) {
-        var self = this;
-        var file = oReq.file;
-
-        // limit simultaneous requests
-        if (self.runningRequests >= self.options.maxSimultaneousRequests) {
-            window.setTimeout(function () {
-                self.uploadFile(index, oReq);
-            }, 500);
-            return;
-        }
-
-        // increase class var runningRequests by 1
-        self.runningRequests++;
-
-        // reset progress-bar and percent value
-        self.resetRow(index);
+        //create XMLHttpRequest object
+        var oReq = new XMLHttpRequest();
 
         // create the formData object
-        var formData = new FormData();
-
-        //add file object to the formData object
-        formData.append(self.fileInputField.name, file);
-
-        //add the requestId to the formData object
-        formData.append('reqId', oReq.id);
-
-        // add value of hidden input fields to the formData object -> REQUEST_TOKEN, MAX_FILE_SIZE, FORM_SUBMIT
-        document.querySelectorAll('#' + self.form.id + ' .formbody input').forEach(function (el) {
-            if (el.type == 'hidden') {
-                if (el.name == 'FORM_SUBMIT' || el.name == 'MAX_FILE_SIZE' || el.name == 'REQUEST_TOKEN') {
-                    formData.append(el.name, el.value);
-                }
-            }
-        });
+        var formData = new FormData(self.form);
 
         // needed for the formValidate-Hook
         formData.append('FORM_UPLOAD_PROGRESSBAR', 'true');
@@ -230,37 +145,25 @@ ProgressBarUpload.prototype = {
         // add events to the request object
         oReq.addEventListener("load", function (event) {
             self._transferComplete(event, oReq);
-            self.runningRequests--;
-            self.pendingUploads--;
-            if (self.pendingUploads == 0) {
-                self.loadOtherFieldsToServer();
-            }
         }, false);
 
         oReq.addEventListener("error", function () {
             oReq.abort();
-            self.resetRow(index);
-            self.runningRequests--;
-            self.pendingUploads--;
-            oReq.stateBox.innerHTML = self.messages['defaultUploadError'];
-
         });
 
         oReq.addEventListener("abort", function () {
             var self = this;
-            self.runningRequests--;
-            oReq.stateBox.innerHTML = self.messages['uploadAborted'];
-            oReq.stateBox.classList.add('error');
-            self.pendingUploads--;
-            if (self.pendingUploads == 0) {
-                alert(self.messages['allUploadsAborted']);
-            }
+
         });
 
         oReq.upload.addEventListener("progress", function (event) {
+            self.statusContainer.style.visibility = 'visible';
+            self.progressBox.style.visibility = 'visible';
+            self.percentBox.style.visibility = 'visible';
+            self.messageBox.innerHTML = self.messages['formSent'];
             var percent = Math.round(100 / event.total * event.loaded);
-            self.setProgressBarValue(index, percent);
-            self.setPercentValue(index, percent);
+            self.setProgressBarValue(percent);
+            self.setPercentValue(percent);
         });
 
         // specify the type of request
@@ -268,71 +171,120 @@ ProgressBarUpload.prototype = {
 
         // send  the request off to the server
         oReq.send(formData);
+
     },
 
     _transferComplete: function (event, oReq) {
         var self = this;
-
         try {
             // get the server-response
             var json = JSON.parse(oReq.responseText);
-            var hasError = true;
-            // eval server response (formValidateHook)
-            if (json.state == 'success') {
-                self.setPercentValue(oReq.index, 100);
-                self.setProgressBarValue(oReq.index, 100);
-                oReq.stateBox.innerHTML = json.serverResponse;
-                oReq.stateBox.parentNode.classList.remove('onprogress');
-                oReq.stateBox.classList.add('success');
-                hasError = false;
+
+            // remove error messages
+            var nodeList = document.querySelectorAll('p.error, p.validInput');
+            nodeList.forEach(function (node) {
+                node.parentNode.removeChild(node);
+            });
+
+            // check for a jumpTo page
+            var jumpTo = false;
+            if (json['jumpTo']) {
+                if (json['jumpTo'] != '') {
+                    var jumpTo = true;
+                }
             }
-            else if (json.state == 'error') {
-                oReq.stateBox.innerHTML = json.errorMsg;
-                oReq.stateBox.classList.add('error');
-                oReq.stateBox.parentNode.classList.remove('onprogress');
-                hasError = false;
+
+            var error = false;
+            for (var key in json) {
+                var errorBox = document.createElement('p');
+                if (!json[key]['type']) continue;
+                if (json[key]['type'] != 'submit') {
+                    // add/remove css classes
+                    if (json[key]['state'] == 'error') {
+                        errorBox.classList.remove('validInput');
+                        errorBox.classList.add('error');
+                        error = true;
+                    }
+                    if (json[key]['state'] == 'validInput') {
+                        errorBox.classList.remove('error');
+                        errorBox.classList.add('validInput');
+                    }
+                    // display a short message below each form field
+                    errorBox.innerHTML = json[key]['serverResponse'];
+                    var parent = document.getElementById(key).parentElement;
+
+                    // insert response after the input field
+                    insertedElement = parent.insertBefore(errorBox, document.getElementById(key).nextSibling);
+                }
+
             }
-            else {
-                oReq.abort();
-                oReq.stateBox.classList.add('error');
-                oReq.stateBox.innerHTML = self.messages['defaultUploadError2'];
+            // if there is invalid input
+            if (error === true) {
+                self.toggleSubmitButton('visible');
+                self.messageBox.innerHTML = self.messages['defaultUploadError'];
+            } else { // if all ok
+                // display message
+                self.messageBox.innerHTML = self.messages['uploadedSuccessfully'];
+
+                if (jumpTo === false) {
+                    // display reload-form-link
+                    var reloadLink = document.createElement('a');
+                    self.reloadLink = reloadLink;
+                    reloadLink.setAttribute('id', 'reloadLink_' + self.form.id);
+                    reloadLink.classList.add('reloadLink');
+                    reloadLink.setAttribute('href', self.form.action);
+                    reloadLink.innerHTML = self.messages['reloadForm'];
+                    self.statusContainer.appendChild(reloadLink);
+                } else {
+                    var redirectWarning = document.createElement('p');
+                    self.redirectWarning = redirectWarning;
+                    redirectWarning.setAttribute('id', 'redirectWarning' + self.form.id);
+                    redirectWarning.classList.add('redirectWarning');
+                    redirectWarning.innerHTML = self.messages['redirectWarning'];
+                    self.statusContainer.appendChild(redirectWarning);
+                }
+
+
+                // hide form fields, if all ok
+                var formFieldsIds = json['form_fields'];
+                if (formFieldsIds.length) {
+                    formFieldsIds.forEach(function (elId) {
+                        if (document.getElementById(elId)) {
+                            document.getElementById(elId).style.display = 'none';
+                        }
+                    });
+                }
+            }
+            self.progressBox.style.visibility = 'hidden';
+            self.percentBox.style.visibility = 'hidden';
+
+            // redirect to jumpTo page
+            if (jumpTo === true) {
+                window.setTimeout(function () {
+                    window.location = window.location.protocol + '//' + window.location.hostname + '/' + json['jumpTo'];
+                }, 2500);
             }
         }
         catch (err) {
-            oReq.abort();
-            oReq.stateBox.classList.add('error');
-            oReq.stateBox.innerHTML = self.messages['defaultUploadError2'];
+            alert(err.message + err.stack);
+            alert(self.messages['serverError']);
         }
-        if (hasError) {
-            oReq.stateBox.innerHTML = self.messages['defaultUploadError'];
-        }
-
     },
 
-    abortAllRequests: function () {
+    setProgressBarValue: function (value) {
         var self = this;
-
-        if (self.requests !== null) {
-            self.requests.forEach(function (oReq) {
-                oReq.abort();
-                oReq.stateBox.parentNode.classList.remove('onprogress');
-            });
-        }
-        self.requests = [];
+        document.getElementById("progressBarBox_" + self.form.id).value = value;
     },
 
-    setProgressBarValue: function (index, value) {
+    setPercentValue: function (value) {
         var self = this;
-        document.getElementById("progressBarBox_" + self.fieldId + '_' + index).value = value;
+        document.getElementById('percentBox_' + self.form.id).innerHTML = value + '%';
     },
 
-    setPercentValue: function (index, value) {
-        var self = this;
-        document.getElementById('percentBox_' + self.fieldId + '_' + index).innerHTML = value + '%';
-    },
-    _getFiles: function (fileList) {
+    _getFiles: function (fileInput) {
 
         var files = [];
+        fileList = fileInput.files;
         if (typeof fileList == 'object' && fileList !== null) {
             if (fileList.length) {
                 for (var key in fileList) {
@@ -347,11 +299,22 @@ ProgressBarUpload.prototype = {
         return files;
     },
 
-
-    resetRow: function (index) {
+    toggleSubmitButton: function (state) {
         var self = this;
-        self.setProgressBarValue(index, 0);
-        self.setPercentValue(index, 0);
+        if (state) {
+            if (self.submitButton) {
+                self.submitButton.style.visibility = state;
+            }
+            return;
+        }
+
+        if (self.submitButton) {
+            if (self.submitButton.style.visibility == 'visible') {
+                self.submitButton.style.visibility = 'hidden';
+            } else {
+                self.submitButton.style.visibility = 'visible';
+            }
+        }
     },
 
     //helper function for findParentBySelector(see below)
