@@ -57,6 +57,9 @@ class FormFileUploadProgressbar extends \FormFileUpload implements \uploadable
               // add javascript source
               $GLOBALS['TL_JAVASCRIPT'][] = 'system/modules/upload_progressbar/assets/js/upload_progressbar.js';
 
+              // add css source
+              $GLOBALS['TL_CSS'][] = 'system/modules/upload_progressbar/assets/css/upload_progressbar.css';
+
               $strMsg = '';
               foreach($GLOBALS['TL_LANG']['form_upload_progressbar']['messages'] as $k => $v)
               {

@@ -92,7 +92,7 @@ ProgressBarUpload.prototype = {
         statusContainer.setAttribute('id', 'info_' + self.form.id);
         document.querySelector('#' + self.form.id + ' .formbody').appendChild(statusContainer);
         self.statusContainer = statusContainer;
-        self.statusContainer.style.visibility = 'hidden';
+        self.statusContainer.classList.add('visibilityHidden');
 
         var messageBox = document.createElement('div');
         messageBox.setAttribute('id', 'messageBox_' + self.form.id);
@@ -157,9 +157,9 @@ ProgressBarUpload.prototype = {
         });
 
         oReq.upload.addEventListener("progress", function (event) {
-            self.statusContainer.style.visibility = 'visible';
-            self.progressBox.style.visibility = 'visible';
-            self.percentBox.style.visibility = 'visible';
+            self.statusContainer.classList.remove('visibilityHidden');
+            self.progressBox.classList.remove('visibilityHidden');
+            self.percentBox.classList.remove('visibilityHidden');
             self.messageBox.innerHTML = self.messages['formSent'];
             var percent = Math.round(100 / event.total * event.loaded);
             self.setProgressBarValue(percent);
@@ -255,11 +255,12 @@ ProgressBarUpload.prototype = {
                     });
                 }
             }
-            self.progressBox.style.visibility = 'hidden';
-            self.percentBox.style.visibility = 'hidden';
+            errorBox.classList.add('validInput');
+            self.progressBox.classList.add('visibilityHidden');
+            self.percentBox.classList.add('visibilityHidden');
 
             // redirect to jumpTo page
-            if (jumpTo === true) {
+            if (jumpTo === true && error !== true) {
                 window.setTimeout(function () {
                     window.location = window.location.protocol + '//' + window.location.hostname + '/' + json['jumpTo'];
                 }, 2500);
@@ -301,19 +302,22 @@ ProgressBarUpload.prototype = {
 
     toggleSubmitButton: function (state) {
         var self = this;
-        if (state) {
+
+        if (state == 'visible') {
             if (self.submitButton) {
-                self.submitButton.style.visibility = state;
+                self.submitButton.classList.remove('visibilityHidden');
+            }
+            return;
+        }
+        if (state == 'hidden') {
+            if (self.submitButton) {
+                self.submitButton.classList.add('visibilityHidden');
             }
             return;
         }
 
         if (self.submitButton) {
-            if (self.submitButton.style.visibility == 'visible') {
-                self.submitButton.style.visibility = 'hidden';
-            } else {
-                self.submitButton.style.visibility = 'visible';
-            }
+            self.submitButton.classList.toggle('visibilityHidden');
         }
     },
 
