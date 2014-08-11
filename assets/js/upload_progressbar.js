@@ -169,6 +169,10 @@ ProgressBarUpload.prototype = {
         // specify the type of request
         oReq.open("POST", self.form.action + '?isAjax=true', true);
 
+        // send the ajax header
+        oReq.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        oReq.setRequestHeader("Accept","text/html, application/xml, text/xml, */*");
+
         // send  the request off to the server
         oReq.send(formData);
 
@@ -269,6 +273,7 @@ ProgressBarUpload.prototype = {
         catch (err) {
             alert(err.message + err.stack);
             alert(self.messages['serverError']);
+            //alert(oReq.responseTex);
         }
     },
 

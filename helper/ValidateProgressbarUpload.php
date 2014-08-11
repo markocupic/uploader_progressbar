@@ -36,17 +36,29 @@ class ValidateProgressbarUpload extends \System
         */
        public function validateFormField($objWidget, $formId, $arrData, $objForm)
        {
-
-              if ($_POST['FORM_UPLOAD_PROGRESSBAR'] != '')
+              if ($_POST['FORM_UPLOAD_PROGRESSBAR'] != '' && \Input::get('isAjax'))
               {
-                     if(($objPage = \PageModel::findByPk($objForm->jumpTo)) !== null)
+                     if (\Environment::get('isAjaxRequest'))
+                     {
+                            // unset $_SERVER['HTTP_X_REQUESTED_WITH']
+                            // otherwise script execution will be stopped
+                            // in Controller::reload() or Controller::redirect() (if a jumpTo-page is selected in the form settings)
+                            // and generatePageHook want be fired
+                            unset($_SERVER['HTTP_X_REQUESTED_WITH']);
+                            // overwrite cache
+                            \Environment::set('isAjaxRequest', false);
+                     }
+
+                     if (($objPage = \PageModel::findByPk($objForm->jumpTo)) !== null)
                      {
                             $href = $objWidget->generateFrontendUrl($objPage->row());
                             $_SESSION['uploaderProgressbar']['jumpTo'] = $href;
                      }
 
-                     if(!isset($_SESSION['uploaderProgressbar']['form_fields'])){
+                     if (!isset($_SESSION['uploaderProgressbar']['form_fields']))
+                     {
                             $_SESSION['uploaderProgressbar']['form_fields'] = array();
+                            $_SESSION['uploaderProgressbar']['submitTime'] = time();
                      }
 
                      $_SESSION['uploaderProgressbar']['form_fields'][] = 'ctrl_' . $objWidget->id;
@@ -81,10 +93,17 @@ class ValidateProgressbarUpload extends \System
 
               if ($_SESSION['uploaderProgressbar'])
               {
-                     $json = json_encode($_SESSION['uploaderProgressbar']);
-                     echo $json;
-                     unset($_SESSION['uploaderProgressbar']);
-                     exit;
+                     if (time() - $_SESSION['uploaderProgressbar']['submitTime'] < 15)
+                     {
+                            $json = json_encode($_SESSION['uploaderProgressbar']);
+                            echo $json;
+                            unset($_SESSION['uploaderProgressbar']);
+                            exit;
+                     }
+                     else
+                     {
+                            unset($_SESSION['uploaderProgressbar']);
+                     }
               }
        }
 }
